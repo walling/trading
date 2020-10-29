@@ -14,6 +14,7 @@ const content = {
   },
   planning: {
     "todo-troels.txt": readFileSync("../planning/todo-troels.txt", "utf8"),
+    "todo-bjarke.md": readFileSync("../planning/todo-bjarke.md", "utf8"),
   },
   "readme.md": readFileSync("../readme.md", "utf8"),
 };
