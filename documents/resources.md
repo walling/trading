@@ -28,6 +28,7 @@
 
 -   Library: [Catalyst — algo trading library for cryptos](https://github.com/enigmampc/catalyst)
 -   Framework: [Jesse — crypto algo trading backtesting](https://docs.jesse.trade/)
+-   Framework: [Hummingbot — execute crypto trading](https://github.com/CoinAlpha/hummingbot)
 -   Reference: [Pine Script — programming language on TradingView](https://www.tradingview.com/pine-script-reference/v4/)
 
 
