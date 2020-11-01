@@ -14,107 +14,120 @@ from pygene3.prog import ProgOrganism
 from pygene3.population import Population
 
 # a tiny batch of functions
-def add(x,y):
-    #print "add: x=%s y=%s" % (repr(x), repr(y))
+
+
+def add(x, y):
+    # print "add: x=%s y=%s" % (repr(x), repr(y))
     try:
         return x+y
     except:
-        #raise
+        # raise
         return x
 
-def sub(x,y):
-    #print "sub: x=%s y=%s" % (repr(x), repr(y))
+
+def sub(x, y):
+    # print "sub: x=%s y=%s" % (repr(x), repr(y))
     try:
         return x-y
     except:
-        #raise
+        # raise
         return x
 
-def mul(x,y):
-    #print "mul: x=%s y=%s" % (repr(x), repr(y))
+
+def mul(x, y):
+    # print "mul: x=%s y=%s" % (repr(x), repr(y))
     try:
         return x*y
     except:
-        #raise
+        # raise
         return x
 
-def div(x,y):
-    #print "div: x=%s y=%s" % (repr(x), repr(y))
+
+def div(x, y):
+    # print "div: x=%s y=%s" % (repr(x), repr(y))
     try:
         return x / y
     except:
-        #raise
+        # raise
         return x
 
+
 def sqrt(x):
-    #print "sqrt: x=%s" % repr(x)
+    # print "sqrt: x=%s" % repr(x)
     try:
         return math.sqrt(x)
     except:
-        #raise
+        # raise
         return x
 
-def pow(x,y):
-    #print "pow: x=%s y=%s" % (repr(x), repr(y))
+
+def pow(x, y):
+    # print "pow: x=%s y=%s" % (repr(x), repr(y))
     try:
         return x ** y
     except:
-        #raise
+        # raise
         return x
 
+
 def log(x):
-    #print "log: x=%s" % repr(x)
+    # print "log: x=%s" % repr(x)
     try:
         return math.log(float(x))
     except:
-        #raise
+        # raise
         return x
 
+
 def sin(x):
-    #print "sin: x=%s" % repr(x)
+    # print "sin: x=%s" % repr(x)
     try:
         return math.sin(float(x))
     except:
-        #raise
+        # raise
         return x
 
+
 def cos(x):
-    #print "cos: x=%s" % repr(x)
+    # print "cos: x=%s" % repr(x)
     try:
         return math.cos(float(x))
     except:
-        #raise
+        # raise
         return x
 
+
 def tan(x):
-    #print "tan: x=%s" % repr(x)
+    # print "tan: x=%s" % repr(x)
     try:
         return math.tan(float(x))
     except:
-        #raise
+        # raise
         return x
 
 # define the class comprising the program organism
+
+
 class MyProg(ProgOrganism):
     """
     """
     funcs = {
         '+': add,
-#        '-':sub,
+        #        '-':sub,
         '*': mul,
-#        '/':div,
-#        '**': pow,
-#        'sqrt': sqrt,
-#        'log' : log,
-#        'sin' : sin,
-#        'cos' : cos,
-#        'tan' : tan,
-        }
+        #        '/':div,
+        #        '**': pow,
+        #        'sqrt': sqrt,
+        #        'log' : log,
+        #        'sin' : sin,
+        #        'cos' : cos,
+        #        'tan' : tan,
+    }
     vars = ['x', 'y']
     consts = [0.0, 1.0, 2.0, 10.0]
 
-    testVals = [{'x':uniform(-10.0, 10.0),
-                 'y':uniform(-10.0, 10.0),
+    testVals = [{'x': uniform(-10.0, 10.0),
+                 'y': uniform(-10.0, 10.0),
                  } for i in range(20)
                 ]
 
@@ -134,7 +147,7 @@ class MyProg(ProgOrganism):
                 badness += (self.calc(**vars) - self.testFunc(**vars)) ** 2
             return badness
         except OverflowError:
-            return 1.0e+255 # infinitely bad
+            return 1.0e+255  # infinitely bad
 
     # maximum tree depth when generating randomly
     initDepth = 6
@@ -152,6 +165,7 @@ class ProgPop(Population):
     childCount = 20
 
     mutants = 0.3
+
 
 def graph(orig, best):
     "Graph on -10, 10 ranges"
@@ -194,6 +208,7 @@ def main(nfittest=10, nkids=100):
             print("failed after 100 generations, restarting")
             pop = ProgPop()
             ngens = 0
+
 
 if __name__ == '__main__':
     main()

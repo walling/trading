@@ -2,8 +2,10 @@ import pyarrow.parquet as pq
 from matplotlib import pyplot as pl
 import numpy as np
 
+
 def normalize(numbers, high, new_max, new_type):
-  return (numbers*(new_max/high)).astype(new_type)
+    return (numbers*(new_max/high)).astype(new_type)
+
 
 table = pq.read_table("../../data/2020_kraken.parquet")
 i = 10
@@ -23,7 +25,7 @@ rng = np.random.default_rng()
 # ints_scaled = normalize(ints, high, maxint8, np.int8)
 # ints_scaled.tofile("random/random-uniform")
 
-ints = rng.normal(0.0, 1.0, size=N)#.astype(np.int8)
+ints = rng.normal(0.0, 1.0, size=N)  # .astype(np.int8)
 high = np.max(np.abs(ints))
 ints_scaled = normalize(ints, high, maxint8, np.int8)
 ints_scaled.tofile("random/random-normal")
