@@ -20,5 +20,5 @@ p = p * 10.0 ** (-s)
 dp = p[:-1] - p[1:]
 
 # Plot previous transaction against current
-pl.scatter(dp[:-1], dp[1:])
+pl.plot(dp[:-1], dp[1:], ".r", markersize=0.1)
 pl.show()
