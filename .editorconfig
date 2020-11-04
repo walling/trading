@@ -13,3 +13,7 @@ indent_size = 4
 
 [*.{py,pyi}]
 indent_size = 4
+
+[Makefile]
+indent_size = 4
+indent_style = tabs
