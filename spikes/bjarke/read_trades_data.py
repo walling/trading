@@ -2,7 +2,8 @@ import pyarrow.dataset as ds
 from pathlib import Path
 
 # Trades data location.
-trades_dir = Path("data/trades")
+root_dir = (Path(__file__).parent / ".." / "..").resolve()
+trades_dir = root_dir / "data" / "trades"
 
 # Open trades dataset using hive partitioning scheme (path contains key=value elements).
 trades_dataset = ds.dataset(trades_dir, format="parquet", partitioning="hive")
