@@ -108,7 +108,7 @@ class KrakenRESTSource:
         side = [TAKER_SIDES.get(n) for n in raw_side]
         order = [ORDER_TYPES.get(n) for n in raw_order]
 
-        kraken = []
+        extra_json = []
         for index, s, o in zip(range(len(raw_trades)), side, order):
             entry = {}
             if s == None:
@@ -119,9 +119,9 @@ class KrakenRESTSource:
                 entry["misc"] = raw_misc[index]
 
             if len(entry.keys()) > 0:
-                kraken.append(json.dumps(entry))
+                extra_json.append(json.dumps({"kraken_rest": entry}))
             else:
-                kraken.append("")
+                extra_json.append(None)
 
         # TODO: Extract the schema to a model, it's the same for all trades
         table = pa.Table.from_arrays(
@@ -131,9 +131,9 @@ class KrakenRESTSource:
                 pa.array(amount, type=pa.uint64()),
                 pa.array(side, type=pa.dictionary(pa.int8(), pa.string())),
                 pa.array(order, type=pa.dictionary(pa.int8(), pa.string())),
-                pa.array(kraken, type=pa.string()),
+                pa.array(extra_json, type=pa.string()),
             ],
-            names=["time", "price", "amount", "side", "order", "kraken"],
+            names=["time", "price", "amount", "side", "order", "extra_json"],
             metadata={
                 "source": "kraken_rest",
                 "exchange": "kraken",
