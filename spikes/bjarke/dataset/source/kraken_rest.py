@@ -1,10 +1,12 @@
 import pyarrow as pa
 from pandas import Timestamp
 from decimal import Decimal
-import krakenex
-import threading
+from typing import Optional
+import random
 import time
 import json
+import asyncio
+from ..infrastructure.request import request_context, request_client
 from ..model.series import TableSeries
 from ..model.partition import Partition
 from ..model.types import Market, TimeInterval
@@ -12,6 +14,9 @@ from ..model.types import Market, TimeInterval
 # -- Kraken API request timeout --
 DEFAULT_TIMEOUT = 15
 DEFAULT_WAIT_TIME = 3
+API_VERSION = "0"
+EXCHANGE_SYMBOL = "kraken"
+SOURCE_SYMBOL = "kraken_rest"
 
 # -- Fix asset symbols according to Cryptowatch API --
 FIX_ASSET_SYMBOLS = {
@@ -53,50 +58,45 @@ class KrakenRESTSource:
     KrakenRESTSource()
     """
 
+    source = SOURCE_SYMBOL
+
     def __init__(self):
-        self._client = krakenex.API()
+        self._client = None
         self._instruments = None
         self._instrument_assets = None
-        self._query_time = None
-        self._query_lock = threading.Lock()
 
-    @property
-    def source(self):
-        return "kraken_rest"
+    async def exchanges(self):
+        return [EXCHANGE_SYMBOL]
 
-    @property
-    def exchanges(self):
-        return ["kraken"]
-
-    @property
-    def assets(self):
-        self._init_instruments()
+    async def assets(self):
+        await self._init_instruments()
         return sorted(self._instrument_assets or [])
 
-    @property
-    def instruments(self):
-        self._init_instruments()
+    async def instruments(self):
+        await self._init_instruments()
         return sorted(self._instruments.keys())
 
-    @property
-    def markets(self):
-        return [f"kraken:{symbol}" for symbol in self.instruments]
+    async def markets(self):
+        return [Market(EXCHANGE_SYMBOL, symbol) for symbol in await self.instruments()]
 
-    def trades(self, instrument: str, since=None):
-        # TODO: pass market instead of instrument
+    async def trades(self, market: str, since: Optional[Timestamp] = None):
+        while True:
+            series = await self.trades_series(market, since)
+            if len(series) > 0:
+                since = series.partition.period.end
+                yield series
+
+    async def trades_series(self, market: str, since: Optional[Timestamp] = None):
         # TODO: support more complete query API instead of just since
 
-        if isinstance(since, bytes):
-            since = Timestamp(since.decode())
-        elif isinstance(since, str):
-            since = Timestamp(since)
-        elif isinstance(since, int):
-            since = Timestamp(since, tz="UTC")
+        exchange_symbol, instrument = market.split(":", 1)
+        if exchange_symbol != EXCHANGE_SYMBOL:
+            raise ValueError(f"{SOURCE_SYMBOL}: market not supported: {market}")
 
-        self._init_instruments()
+        await self._init_instruments()
 
         pair = self._instruments[instrument]
-        result = self._query_trades(pair["name"], since)
+        result = await self.request_trades(pair["name"], since)
         raw_trades = result[pair["name"]]
 
         price_scale = pair["pair_decimals"]
@@ -122,15 +122,16 @@ class KrakenRESTSource:
                 entry["misc"] = raw_misc[index]
 
             if len(entry.keys()) > 0:
-                extra_json.append(json.dumps({"kraken_rest": entry}))
+                extra_json.append(json.dumps({SOURCE_SYMBOL: entry}))
             else:
                 extra_json.append(None)
 
         pagination_next = Timestamp(int(result["last"]), tz="UTC")
-        period = TimeInterval(since or time[0], pagination_next)
-
-        market = Market("kraken", instrument)
-        partition = Partition("kraken_rest", market, period)
+        partition = Partition(
+            source=SOURCE_SYMBOL,
+            market=Market(EXCHANGE_SYMBOL, instrument),
+            period=TimeInterval(since or time[0], pagination_next),
+        )
 
         table = pa.Table.from_arrays(
             [
@@ -146,69 +147,92 @@ class KrakenRESTSource:
 
         return TableSeries(table, partition)
 
-    def _init_instruments(self):
+    async def _init_instruments(self):
         if self._instruments:
             return
 
-        self._instruments = {}
-        self._instrument_assets = set()
-        for name, data in self._query("AssetPairs").items():
+        asset_pairs = await self.request("AssetPairs")
+        instruments = {}
+        instrument_assets = set()
+
+        for name, data in asset_pairs.items():
             if "wsname" not in data:
                 continue
             data["name"] = name
             base, quote = map(fix_asset, data["wsname"].split("/"))
             data["symbol"] = "/".join([base, quote])
-            self._instruments[data["symbol"]] = data
-            self._instrument_assets.add(base)
-            self._instrument_assets.add(quote)
+            instruments[data["symbol"]] = data
+            instrument_assets.add(base)
+            instrument_assets.add(quote)
 
-    def _query_trades(self, pair: str, since: Timestamp):
-        return self._query(
+        self._instruments = instruments
+        self._instrument_assets = instrument_assets
+
+    async def request_trades(self, pair: str, since: Optional[Timestamp] = None):
+        return await self.request(
             "Trades",
-            {
-                "pair": pair,
-                "since": since and int(since.asm8) or 0,
-            },
+            pair=pair,
+            since=since and int(since.asm8) or 0,
         )
 
-    def _query(self, method: str, data=None):
+    async def request(self, method: str, **data):
+        return await self._request_backoff(method, data)
+
+    # TODO: Refactor back-off algorithm to request module
+    async def _request_backoff(self, method: str, data={}, tries=3, current_try=0):
         try:
-            return self._query_raw(method, data)
-        except (KeyboardInterrupt, SystemExit):
+            return await self._request_single(method, data)
+        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
             raise
         except:
-            try:
-                print("-- backoff attempt 1 --")
-                return self._query_raw(method, data, 2)
-            except (KeyboardInterrupt, SystemExit):
+            current_try += 1
+            if current_try >= tries:
                 raise
-            except:
-                print("-- backoff attempt 2 --")
-                return self._query_raw(method, data, 4)
 
-    def _query_raw(self, method: str, data, backoff_multiplier=1):
-        with self._query_lock:
-            try:
-                if self._query_time:
-                    elapsed_time = (
-                        float((Timestamp.utcnow() - self._query_time).asm8) / 1e9
-                    )
-                    wait_time = max(0.0, DEFAULT_WAIT_TIME - elapsed_time)
-                    time.sleep(
-                        wait_time * backoff_multiplier + (backoff_multiplier - 1)
-                    )
+            # Back-off wait time and try again.
+            wait_time = DEFAULT_WAIT_TIME * (random.random() + 2 ** current_try)
+            await asyncio.sleep(wait_time)
+            return await self.request(
+                method=method,
+                data=data,
+                tries=tries,
+                current_try=current_try,
+            )
 
-                result = self._client.query_public(
-                    method, data=data, timeout=DEFAULT_TIMEOUT
-                )
-                if "error" in result and len(result["error"]) > 0:
-                    raise Exception(f'KrakenRESTSource: {result["error"]}')
-                return result["result"]
-            finally:
-                self._query_time = Timestamp.utcnow()
+    async def _request_single(self, method: str, data={}):
+        if not self._client:
+            self._client = request_client(
+                throttle_wait=DEFAULT_WAIT_TIME,
+                timeout=DEFAULT_TIMEOUT,
+            )
+
+        url = f"https://api.kraken.com/{API_VERSION}/public/{method}"
+        response = await self._client.post(url, json=data)
+
+        error = response["error"]
+        if error:
+            error_message = "; ".join(error) if isinstance(error, list) else str(error)
+            raise RuntimeError(f"{SOURCE_SYMBOL}: {error_message}")
+
+        return response["result"]
 
     def __str__(self):
         return "<KrakenRESTSource>"
 
     def __repr__(self):
         return "KrakenRESTSource()"
+
+
+if __name__ == "__main__":
+
+    async def test():
+        async with request_context():
+            kraken = KrakenRESTSource()
+            since = Timestamp("2020-11-05 17:00", tz="UTC")
+            async for t in kraken.trades("kraken:btc/eur", since=since):
+                print(t)
+            # print(await request("Time"))
+            # print(await request("AssetPairs"))
+            # print(await request("Trades", {"pair": "XXBTZEUR"}))
+
+    asyncio.run(test())
