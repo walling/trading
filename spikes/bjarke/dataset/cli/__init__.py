@@ -1,4 +1,4 @@
-from ..source import KrakenRESTSource
+from ..source import source_instance
 
 
 class CLI:
@@ -6,5 +6,5 @@ class CLI:
         pass
 
     def main(self):
-        source = KrakenRESTSource()
+        source = source_instance("kraken_rest")
         print(source.trades("btc/usd").to_pandas())
