@@ -1,10 +1,8 @@
-
 # Data models
 
 For efficient processing, we should limit data to signed and unsigned integers (int8 to int64), floats (float16 to float64), and timestamps (stored as int32/int64). Furthermore no null values are allowed in storage.
 
 Decimal numbers are stored as integers with a fixed scale (number of decimal places). The scale can be stored as part of the metadata for a given column or as a separate column (if different decimal scales are to be stored).
-
 
 ## Asset
 
@@ -17,7 +15,6 @@ Data model:
 Considerations:
 
 -   We use the [Cryptowatch](https://docs.cryptowat.ch/rest-api/assets/assets-index) symbols whenever available
-
 
 ## Instrument
 
@@ -35,7 +32,6 @@ Considerations:
 
 -   We use the [Cryptowatch](https://docs.cryptowat.ch/rest-api/assets/assets-index) symbols for assets whenever available, however we don't use the Cryptowatch instrument symbol, since they don't divide the elements by a slash `/`, which we do.
 
-
 ## Exchange
 
 A place where multiple instruments are traded. Usually they have an API for trading, accessing live data over Websocket and downloading (some) historical data over REST.
@@ -47,7 +43,6 @@ Data model:
 Considerations:
 
 -   We use the [Cryptowatch](https://docs.cryptowat.ch/rest-api/exchanges/list) symbols whenever available
-
 
 ## Data source
 
@@ -61,7 +56,6 @@ Considerations:
 
 -   Currently only `kraken_api` is in use
 
-
 ## Market
 
 A market is a specific instrument traded on a specific exchange.
@@ -69,8 +63,8 @@ A market is a specific instrument traded on a specific exchange.
 Data model:
 
 1.  `id` (int64): Stable numeric identification of the market
-3.  `exchange` (string): Exchange symbol
-4.  `instrument` (string): Instrument symbol
+2.  `exchange` (string): Exchange symbol
+3.  `instrument` (string): Instrument symbol
 
 The market is represented by the exchange and instrument symbols seperated by a colon, e.g. `kraken:eur/usd` or `fix:btc/usd/quarterly-future-2020Q3`.
 
@@ -78,7 +72,6 @@ Considerations:
 
 -   The `id` makes it possible to store the market in an integer column, which takes less space and is more computationally effective, e.g. when storing many trades.
 -   It's very common with the `exchange:instrument` naming convention, e.g. on [TradingView](https://www.tradingview.com)
-
 
 ## Trades
 

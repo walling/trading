@@ -1,11 +1,8 @@
-
 # Resources
-
 
 ## Communities
 
 -   Subreddit: [/r/AlgoTrading](https://www.reddit.com/r/algotrading/)
-
 
 ## Trading Basics
 
@@ -16,13 +13,11 @@
 -   Article: [Automated Trading: Pros and Cons](https://www.investopedia.com/articles/trading/11/automated-trading-systems.asp)
 -   Article: [Selling Options](https://www.investopedia.com/articles/optioninvestor/09/selling-options.asp)
 
-
 ## Algo Trading
 
 -   Article: [Algo Trade with Trends](https://kjtradingsystems.com/bull-bear-regime-trading.html)
 -   Article: [1 Year of Day Trading for a Living](https://blog.usejournal.com/things-you-learn-after-1-year-of-day-trading-for-a-living-a97bbc8d19fa)
 -   Lecture (video): [Probabilistic Programming in Quantitative Finance](https://www.youtube.com/watch?v=MeKucat_gw8)
-
 
 ## Software
 
@@ -30,7 +25,6 @@
 -   Framework: [Jesse — crypto algo trading backtesting](https://docs.jesse.trade/)
 -   Framework: [Hummingbot — execute crypto trading](https://github.com/CoinAlpha/hummingbot)
 -   Reference: [Pine Script — programming language on TradingView](https://www.tradingview.com/pine-script-reference/v4/)
-
 
 ## Paid Systems
 

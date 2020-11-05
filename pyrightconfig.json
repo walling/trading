@@ -1,0 +1,6 @@
+{
+  "include": ["spikes/bjarke"],
+  "exclude": ["spikes/bjarke/tmp"],
+  "reportMissingTypeStubs": true,
+  "pythonVersion": "3.8"
+}

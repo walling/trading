@@ -19,7 +19,7 @@ from pygene3.population import Population
 def add(x, y):
     # print "add: x=%s y=%s" % (repr(x), repr(y))
     try:
-        return x+y
+        return x + y
     except:
         # raise
         return x
@@ -28,7 +28,7 @@ def add(x, y):
 def sub(x, y):
     # print "sub: x=%s y=%s" % (repr(x), repr(y))
     try:
-        return x-y
+        return x - y
     except:
         # raise
         return x
@@ -37,7 +37,7 @@ def sub(x, y):
 def mul(x, y):
     # print "mul: x=%s y=%s" % (repr(x), repr(y))
     try:
-        return x*y
+        return x * y
     except:
         # raise
         return x
@@ -105,16 +105,17 @@ def tan(x):
         # raise
         return x
 
+
 # define the class comprising the program organism
 
 
 class MyProg(ProgOrganism):
-    """
-    """
+    """"""
+
     funcs = {
-        '+': add,
+        "+": add,
         #        '-':sub,
-        '*': mul,
+        "*": mul,
         #        '/':div,
         #        '**': pow,
         #        'sqrt': sqrt,
@@ -123,13 +124,16 @@ class MyProg(ProgOrganism):
         #        'cos' : cos,
         #        'tan' : tan,
     }
-    vars = ['x', 'y']
+    vars = ["x", "y"]
     consts = [0.0, 1.0, 2.0, 10.0]
 
-    testVals = [{'x': uniform(-10.0, 10.0),
-                 'y': uniform(-10.0, 10.0),
-                 } for i in range(20)
-                ]
+    testVals = [
+        {
+            "x": uniform(-10.0, 10.0),
+            "y": uniform(-10.0, 10.0),
+        }
+        for i in range(20)
+    ]
 
     mutProb = 0.4
 
@@ -137,7 +141,7 @@ class MyProg(ProgOrganism):
         """
         Just wanting to model x^2 + y
         """
-        return vars['x'] ** 2 + vars['y']
+        return vars["x"] ** 2 + vars["y"]
 
     def fitness(self):
         # choose 10 random values
@@ -147,7 +151,7 @@ class MyProg(ProgOrganism):
                 badness += (self.calc(**vars) - self.testFunc(**vars)) ** 2
             return badness
         except OverflowError:
-            return 1.0e+255  # infinitely bad
+            return 1.0e255  # infinitely bad
 
     # maximum tree depth when generating randomly
     initDepth = 6
@@ -173,12 +177,12 @@ def graph(orig, best):
     for y in range(10, -11, -2):
         for x in range(-10, 11, 3):
             z = orig(x=float(x), y=float(y))
-            print("%03.0f " % z, end=' ')
+            print("%03.0f " % z, end=" ")
 
-        print("  ", end=' ')
+        print("  ", end=" ")
         for x in range(-10, 11, 3):
             z = best(x=float(x), y=float(y))
-            print("%03.0f " % z, end=' ')
+            print("%03.0f " % z, end=" ")
         print()
 
 
@@ -190,8 +194,10 @@ def main(nfittest=10, nkids=100):
     i = 0
     while True:
         b = pop.best()
-        print("Generation %s: %s best=%s average=%s)" % (
-            i, str(b), b.fitness(), pop.fitness()))
+        print(
+            "Generation %s: %s best=%s average=%s)"
+            % (i, str(b), b.fitness(), pop.fitness())
+        )
         b.dump()
 
         graph(b.testFunc, b.calc)
@@ -210,6 +216,6 @@ def main(nfittest=10, nkids=100):
             ngens = 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
     pass
