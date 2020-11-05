@@ -11,7 +11,7 @@ async def fetch_async(market: str, since: Optional[str] = None):
     if since:
         print(f"{market} trades since {since}:")
     else:
-        print(f"{market} trades:")
+        print(f"{market} trades since the beginning:")
 
     source = source_instance("kraken_rest")
     async with request_context():

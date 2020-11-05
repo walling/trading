@@ -2,7 +2,7 @@
 
 # Immediately exit on failure; work in root directory
 set -e
-cd $(dirname "$0")/..
+cd $(dirname "$0")/../lib
 
 # Invoke application
-python3 -m spikes.bjarke.dataset "$@"
+python3 -m dataset "$@"
