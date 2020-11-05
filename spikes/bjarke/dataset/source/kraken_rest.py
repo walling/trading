@@ -5,6 +5,9 @@ import krakenex
 import threading
 import time
 import json
+from ..model.series import TableSeries
+from ..model.partition import Partition
+from ..model.types import Market, TimeInterval
 
 # -- Kraken API request timeout --
 DEFAULT_TIMEOUT = 15
@@ -123,7 +126,12 @@ class KrakenRESTSource:
             else:
                 extra_json.append(None)
 
-        # TODO: Extract the schema to a model, it's the same for all trades
+        pagination_next = Timestamp(int(result["last"]), tz="UTC")
+        period = TimeInterval(since or time[0], pagination_next)
+
+        market = Market("kraken", instrument)
+        partition = Partition("kraken_rest", market, period)
+
         table = pa.Table.from_arrays(
             [
                 pa.array(time, type=pa.timestamp("ns", tz="UTC")),
@@ -134,19 +142,9 @@ class KrakenRESTSource:
                 pa.array(extra_json, type=pa.string()),
             ],
             names=["time", "price", "amount", "side", "order", "extra_json"],
-            metadata={
-                "source": "kraken_rest",
-                "exchange": "kraken",
-                "assets": ",".join(map(str, sorted(set(instrument.split("/"))))),
-                "instrument": instrument,
-                "market": f"kraken:{instrument}",
-                "pagination_next_since": Timestamp(
-                    int(result["last"]), tz="UTC"
-                ).isoformat(),
-            },
         )
 
-        return table
+        return TableSeries(table, partition)
 
     def _init_instruments(self):
         if self._instruments:

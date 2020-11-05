@@ -7,4 +7,6 @@ class CLI:
 
     def main(self):
         source = source_instance("kraken_rest")
-        print(source.trades("btc/usd").to_pandas())
+        result = source.trades("btc/usd")
+        print(result)
+        print(result.to_pandas())

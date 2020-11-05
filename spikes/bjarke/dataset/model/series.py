@@ -19,5 +19,11 @@ class TableSeries:
     def num_rows(self) -> int:
         return len(self._table)
 
+    def to_pandas(self):
+        return self._table.to_pandas()
+
     def __len__(self) -> int:
         return self.num_rows
+
+    def __str__(self) -> str:
+        return "<TableSeries %s num_rows=%r>" % (self.partition, self.num_rows)
