@@ -1,7 +1,6 @@
 import pyarrow as pa
 from pandas import Timestamp
 from decimal import Decimal
-from typing import Optional, Any
 import krakenex
 import threading
 import time
@@ -51,12 +50,6 @@ class KrakenRESTSource:
     KrakenRESTSource()
     """
 
-    _client: krakenex.API
-    _instruments: Optional["dict[str, Any]"]
-    _instrument_assets: Optional["set[str]"]
-    _query_time: Optional[Timestamp]
-    _query_lock: threading.Lock
-
     def __init__(self):
         self._client = krakenex.API()
         self._instruments = None
@@ -86,7 +79,7 @@ class KrakenRESTSource:
     def markets(self):
         return [f"kraken:{symbol}" for symbol in self.instruments]
 
-    def trades(self, instrument, since=None):
+    def trades(self, instrument: str, since=None):
         # TODO: pass market instead of instrument
         # TODO: support more complete query API instead of just since
 
