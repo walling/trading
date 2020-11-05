@@ -1,4 +1,4 @@
-from ..infrastructure.source import KrakenRESTSource
+from ..source import KrakenRESTSource
 
 
 class CLI:
