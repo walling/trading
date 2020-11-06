@@ -8,6 +8,10 @@ const content = {
   documents: {
     "data-models.md": readFileSync("../documents/data-models.md", "utf8"),
     "resources.md": readFileSync("../documents/resources.md", "utf8"),
+    "turbulence-and-trading.md": readFileSync(
+      "../documents/turbulence-and-trading.md",
+      "utf8"
+    ),
   },
   "markdown-viewer": {
     "readme.md": readFileSync("../markdown-viewer/readme.md", "utf8"),
