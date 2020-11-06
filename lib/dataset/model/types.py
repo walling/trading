@@ -44,20 +44,20 @@ class Market:
         return "Market(%r, %r)" % (self._exchange, self._instrument)
 
 
-def timestamp(t: TimestampLike) -> Timestamp:
+def parse_timestamp(t: TimestampLike) -> Timestamp:
     """
     Convert values to timestamp. If the value is already a timestamp, it will be returned as-is.
 
     >>> t1 = Timestamp("2017-03-07")
-    >>> timestamp(t1)
-    Timestamp('2017-03-07 00:00:00')
-    >>> timestamp(t1) == t1
+    >>> parse_timestamp(t1)
+    parse_timestamp('2017-03-07 00:00:00')
+    >>> parse_timestamp(t1) == t1
     True
-    >>> timestamp("2017-03-07")
+    >>> parse_timestamp("2017-03-07")
     Timestamp('2017-03-07 00:00:00+0000', tz='UTC')
-    >>> timestamp("2017-03Z")
+    >>> parse_timestamp("2017-03Z")
     Timestamp('2017-03-01 00:00:00+0000', tz='UTC')
-    >>> timestamp(1488844800000000000)
+    >>> parse_timestamp(1488844800000000000)
     Timestamp('2017-03-07 00:00:00+0000', tz='UTC')
     """
 
@@ -68,21 +68,21 @@ def timestamp(t: TimestampLike) -> Timestamp:
     return Timestamp(t, tz="UTC")
 
 
-def timestamp_format(t: Timestamp) -> str:
+def format_timestamp(t: Timestamp) -> str:
     """
     Displays a timestamp in a short ISO8601-compatible format by leaving out "null" elements.
 
-    >>> timestamp_format(timestamp("2020-03-24 15:34:55"))
+    >>> format_timestamp(parse_timestamp("2020-03-24 15:34:55"))
     '2020-03-24T15:34:55Z'
-    >>> timestamp_format(timestamp("2020-03-24 15:34:00"))
+    >>> format_timestamp(parse_timestamp("2020-03-24 15:34:00"))
     '2020-03-24T15:34Z'
-    >>> timestamp_format(timestamp("2020-03-24 15:00:00"))
+    >>> format_timestamp(parse_timestamp("2020-03-24 15:00:00"))
     '2020-03-24T15Z'
-    >>> timestamp_format(timestamp("2020-03-24 00:00:00"))
+    >>> format_timestamp(parse_timestamp("2020-03-24 00:00:00"))
     '2020-03-24Z'
-    >>> timestamp_format(timestamp("2020-03-01 00:00:00"))
+    >>> format_timestamp(parse_timestamp("2020-03-01 00:00:00"))
     '2020-03Z'
-    >>> timestamp_format(timestamp("2020-01-01 00:00:00"))
+    >>> format_timestamp(parse_timestamp("2020-01-01 00:00:00"))
     '2020Z'
     """
 
@@ -124,7 +124,7 @@ class TimeInterval(Interval):
     """
 
     def __init__(self, start: TimestampLike, end: TimestampLike):
-        super().__init__(timestamp(start), timestamp(end), closed="left")
+        super().__init__(parse_timestamp(start), parse_timestamp(end), closed="left")
 
     @property
     def start(self) -> Timestamp:
@@ -135,11 +135,11 @@ class TimeInterval(Interval):
         return self.right
 
     def __str__(self) -> str:
-        return f"{timestamp_format(self.left)}/{timestamp_format(self.right)}"
+        return f"{format_timestamp(self.left)}/{format_timestamp(self.right)}"
 
     def __repr__(self) -> str:
         closed = self.closed
         closed = "" if closed == "left" else ", closed=%r" % closed
-        left = timestamp_format(self.left)
-        right = timestamp_format(self.right)
+        left = format_timestamp(self.left)
+        right = format_timestamp(self.right)
         return "TimeInterval(%r, %r%s)" % (left, right, closed)

@@ -3,10 +3,12 @@
 
 all: test typecheck lint
 
+# todo: fix test errors
 test:
 	@echo "== python test =="
-	@pytest --quiet --doctest-modules spikes/bjarke/dataset/
+	@pytest --quiet --doctest-modules lib/dataset/
 
+# todo: fix type check errors
 typecheck:
 	@echo "== python typecheck =="
 	@pyright
