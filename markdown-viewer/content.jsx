@@ -13,6 +13,11 @@ const content = {
       "utf8"
     ),
   },
+  lib: {
+    dataset: {
+      "readme.md": readFileSync("../lib/dataset/readme.md", "utf8"),
+    },
+  },
   "markdown-viewer": {
     "readme.md": readFileSync("../markdown-viewer/readme.md", "utf8"),
   },
