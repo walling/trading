@@ -42,7 +42,7 @@ class Result:
     def raw_table_arrow(self):
         return self._table
 
-    def column_numpy(self, name, decimals_as_floats=True, timestamps_as_floats=True):
+    def column_numpy(self, name, decimals_as_floats=False, timestamps_as_floats=False):
         values = self._table[name].to_numpy()
 
         metadata = self._table.schema.field(name).metadata
