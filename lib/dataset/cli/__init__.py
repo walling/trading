@@ -1,5 +1,5 @@
 from ..source import source_instance
-from ..model.types import timestamp
+from ..model.types import parse_timestamp
 from ..infrastructure.request import request_context
 from typing import List, Optional
 import click
@@ -7,7 +7,7 @@ import asyncio
 
 
 async def fetch_async(market: str, since: Optional[str] = None):
-    since = timestamp(since) if since else None
+    since = parse_timestamp(since) if since else None
     if since:
         print(f"{market} trades since {since}:")
     else:
