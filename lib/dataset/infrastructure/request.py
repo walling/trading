@@ -73,7 +73,7 @@ class HTTPSession:
 
         self._session = request_context().session(
             timeout=aiohttp.ClientTimeout(
-                total=timeout,
+                total=timeout,  # type: ignore
                 connect=connect_timeout,
             ),
             raise_for_status=raise_for_status,
@@ -90,12 +90,12 @@ class HTTPSession:
         self._throttle_last = now + remaining_time
         await asyncio.sleep(remaining_time)
 
-    async def get(self, url, *args, **kwargs):
+    async def get(self, url: str, *args, **kwargs):
         await self.throttle()
         async with self._session.get(url, *args, **kwargs) as response:
             return await response.json()
 
-    async def post(self, url, *args, **kwargs):
+    async def post(self, url: str, *args, **kwargs):
         await self.throttle()
         async with self._session.post(url, *args, **kwargs) as response:
             return await response.json()

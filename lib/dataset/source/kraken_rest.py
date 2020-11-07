@@ -172,7 +172,7 @@ class KrakenRESTSource:
         return await self.request(
             "Trades",
             pair=pair,
-            since=since and int(since.asm8) or 0,
+            since=int(since.asm8) if since else 0,  # type: ignore
         )
 
     async def request(self, method: str, **data):

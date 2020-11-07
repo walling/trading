@@ -1,4 +1,4 @@
-from typing import List, Union, Optional, Callable
+from typing import List, Tuple, Dict, Union, Optional, Callable
 from pandas import Timestamp
 import pyarrow.dataset as ds
 import re
@@ -36,7 +36,7 @@ COLUMNS = {
 
 def validate_subject(name: str):
     if name not in SUBJECTS:
-        raise ValueError(f"Invalid subject: {repr(symbol)}")
+        raise ValueError(f"Invalid subject: {repr(name)}")
 
 
 def validate_column(subject: Optional[str], name: str):
@@ -78,15 +78,15 @@ def validate_market(symbol: str):
 
 class QueryBuilder:
     def __init__(self):
-        self._subject = None
-        self._filters = {
+        self._subject: Optional[str] = None
+        self._filters: Dict[str, List[str]] = {
             "columns": [],
             "sources": [],
             "exchanges": [],
             "instruments": [],
             "markets": [],
         }
-        self._time = {
+        self._time: Dict[str, Optional[Timestamp]] = {
             "start": None,
             "end": None,
         }
@@ -154,23 +154,24 @@ class QueryBuilder:
         return self._update_time("end", interval.end)
 
     def reset(self, *keys: StrArgsOrList) -> "QueryBuilder":
-        keys = self._args_or_list(keys)
+        keys_list = self._args_or_list(keys)
 
-        if len(keys) == 0:
+        if len(keys_list) == 0:
+            self._subject = None
+            for key in self._filters.keys():
+                self._filters[key] = []
             for key in self._time.keys():
                 self._time[key] = None
-            for key in self._filters.keys():
-                self._filters[key] = None
             return self
 
-        for key in keys:
+        for key in keys_list:
             if key == "subject":
                 self._subject = None
-            elif key == "time":
+            elif key in ["time", "period"]:
                 self._time["start"] = None
                 self._time["end"] = None
             elif key in self._time:
-                self._time[key] = []
+                self._time[key] = None
             elif key in self._filters:
                 self._filters[key] = []
             else:
@@ -180,12 +181,12 @@ class QueryBuilder:
     def _update(
         self,
         key: str,
-        values: StrArgsOrList,
+        values: Tuple[StrArgsOrList, ...],
         validate: Optional[Callable] = None,
     ) -> "QueryBuilder":
-        values = self._args_or_list(values)
-        [validate(value) for value in values if validate]
-        self._filters[key] = values
+        values_list = self._args_or_list(values)
+        [validate(value) for value in values_list if validate]
+        self._filters[key] = values_list
         return self
 
     def _update_time(self, key: str, value: TimestampLike) -> "QueryBuilder":
@@ -193,9 +194,9 @@ class QueryBuilder:
         return self
 
     def _sort_and_validate_columns(self) -> "QueryBuilder":
-        subject = self._subject
+        subject = self._subject or ""
 
-        def sort_key(name):
+        def sort_key(name: str):
             try:
                 return COLUMNS[subject].index(name)
             except ValueError:
@@ -209,9 +210,9 @@ class QueryBuilder:
 
         return self
 
-    def _args_or_list(self, items: StrArgsOrList) -> List[str]:
+    def _args_or_list(self, items: Tuple[StrArgsOrList, ...]) -> List[str]:
         if len(items) == 1 and isinstance(items[0], (list, tuple)):
-            items = items[0]
+            return list(items[0])
         return list(map(str, items))
 
     def __str__(self) -> str:
