@@ -13,7 +13,7 @@ Run it:
 Example:
 
 ```python
-from lib.dataset.model.read.query import QueryBuilder
+from dataset import QueryBuilder
 result = (
     QueryBuilder()
     .trades()
@@ -21,13 +21,13 @@ result = (
     .markets("kraken:btc/eur")
     .run()
 )
-print(result.column_numpy("time"))
-print(result.column_numpy("price"))
+print(result.column_numpy("time", timestamps_as_floats=True))
+print(result.column_numpy("price", decimals_as_floats=True))
 print(result.column_numpy("side"))
 ```
 
 Try running:
 
 ```bash
-python3 -m lib.dataset.model.read.query
+python3 spikes/bjarke/read_trades_data.py
 ```

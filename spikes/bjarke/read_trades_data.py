@@ -1,14 +1,12 @@
 """
 Small script to show how to query and extract data.
-
-Run it with `python3 -m spikes.bjarke.read_trades_data`
 """
 
 import pathlib, sys
 
 sys.path.append(str(pathlib.Path(__file__).parent.joinpath("../../lib").resolve()))
 
-from dataset.model.read.query import QueryBuilder
+from dataset import QueryBuilder
 
 query = QueryBuilder().trades().columns("time", "price").markets("kraken:btc/eur")
 print(query)
