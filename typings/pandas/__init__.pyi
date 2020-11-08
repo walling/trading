@@ -15,6 +15,15 @@ class Interval(Generic[T]):
 class Timedelta:
     asm8: numpy.timedelta64
 
+class DateOffset:
+    def __init__(
+        self,
+        years: Optional[int] = None,
+        months: Optional[int] = None,
+        days: Optional[int] = None,
+    ): ...
+    def __mul__(self, other: int) -> DateOffset: ...
+
 class Timestamp:
     year: int
     month: int
@@ -25,3 +34,4 @@ class Timestamp:
     @staticmethod
     def utcnow() -> Timestamp: ...
     def __sub__(self, other: Timestamp) -> Timedelta: ...
+    def __add__(self, other: DateOffset) -> Timestamp: ...
