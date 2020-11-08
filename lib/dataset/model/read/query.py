@@ -308,13 +308,13 @@ class Query:
         start_filter = None
         if self._start:
             f1 = ds.field("year") >= self._start.year
-            f2 = ds.field("time") >= self._start.isoformat()
+            f2 = ds.field("time") >= self._start.isoformat().replace("+00:00", "Z")
             start_filter = f1 & f2
 
         end_filter = None
         if self._end:
-            f1 = ds.field("year") >= self._end.year
-            f2 = ds.field("time") >= self._end.isoformat()
+            f1 = ds.field("year") <= self._end.year
+            f2 = ds.field("time") < self._end.isoformat().replace("+00:00", "Z")
             end_filter = f1 & f2
 
         combined_filter = None
