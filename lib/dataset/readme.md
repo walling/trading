@@ -29,5 +29,5 @@ print(result.column_numpy("side"))
 Try running:
 
 ```bash
-python3 spikes/bjarke/read_trades_data.py
+env PYTHONPATH=lib python3 spikes/bjarke/read_trades_data.py
 ```
