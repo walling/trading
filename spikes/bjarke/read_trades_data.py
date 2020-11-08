@@ -1,10 +1,11 @@
 """
 Small script to show how to query and extract data.
+
+Run it:
+
+    env PYTHONPATH=lib python3 spikes/bjarke/read_trades_data.py
+
 """
-
-import pathlib, sys
-
-sys.path.append(str(pathlib.Path(__file__).parent.joinpath("../../lib").resolve()))
 
 from dataset import QueryBuilder
 

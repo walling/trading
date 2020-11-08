@@ -2,7 +2,10 @@
 
 # Immediately exit on failure; work in root directory
 set -e
-cd $(dirname "$0")/../lib
+cd $(dirname "$0")/..
+
+# Make sure lib paths can be imported
+export PYTHONPATH=lib
 
 # Invoke application
 python3 -m dataset "$@"
