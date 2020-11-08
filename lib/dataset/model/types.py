@@ -50,7 +50,7 @@ def parse_timestamp(t: TimestampLike) -> Timestamp:
 
     >>> t1 = Timestamp("2017-03-07")
     >>> parse_timestamp(t1)
-    parse_timestamp('2017-03-07 00:00:00')
+    Timestamp('2017-03-07 00:00:00')
     >>> parse_timestamp(t1) == t1
     True
     >>> parse_timestamp("2017-03-07")
