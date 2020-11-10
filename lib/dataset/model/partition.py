@@ -39,6 +39,26 @@ class Partition:
     def period(self):
         return self._period
 
+    def with_period(self, new_period: TimeInterval) -> "Partition":
+        return Partition(self._source, self._market, new_period)
+
+    def path(self, subject: str, period_short=False):
+        period_formatted = self._period.format(short=period_short)
+        period = period_formatted.replace("/", ".").replace(":", "")
+        year = str(self._period.start.year)
+        exchange = self._market.exchange
+        instrument = self._market.instrument.replace("/", "_")
+        source = self._source
+        parts = [
+            subject,
+            f"year={year}",
+            f"exchange={exchange}",
+            f"instrument={instrument}",
+            f"source={source}",
+            f"{period}.{exchange}.{instrument}.{source}.{subject}.parquet",
+        ]
+        return "/".join(parts)
+
     def __str__(self):
         return "%s:%s:%s" % (
             self.source,

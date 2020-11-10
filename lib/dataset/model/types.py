@@ -1,5 +1,5 @@
 from typing import Union
-from pandas import Timestamp, Interval
+from pandas import Timestamp, DateOffset, Interval
 
 TimestampLike = Union[Timestamp, str, int]
 
@@ -97,6 +97,10 @@ def format_timestamp(t: Timestamp) -> str:
     )
 
 
+def format_timestamp_full(t: Timestamp) -> str:
+    return t.strftime("%Y-%m-%dT%H:%M:%S.%f") + ("%03d" % t.nanosecond) + "Z"
+
+
 class TimeInterval(Interval):
     """
     Represents an open time interval [start; end).
@@ -133,6 +137,51 @@ class TimeInterval(Interval):
     @property
     def end(self) -> Timestamp:
         return self.right
+
+    def with_start(self, start: Timestamp) -> "TimeInterval":
+        return TimeInterval(start, self.end)
+
+    def with_end(self, end: Timestamp) -> "TimeInterval":
+        return TimeInterval(self.start, end)
+
+    def format(self, short=False) -> str:
+        if short:
+            start = format_timestamp(self.start)
+            end = format_timestamp(self.end)
+
+            if len(start) == 5 and self.end == self.start + DateOffset(years=1):
+                return start[0:4]
+
+            if len(start) == 8 and self.end == self.start + DateOffset(months=1):
+                return start[0:7]
+
+            if len(start) == 11 and self.end == self.start + DateOffset(days=1):
+                return start[0:10]
+
+        start = format_timestamp_full(self.start)
+        end = format_timestamp_full(self.end)
+        return "/".join([start, end])
+
+    @property
+    def is_year(self):
+        start = format_timestamp(self.start)
+        end = format_timestamp(self.end)
+
+        return len(start) == 5 and self.end == self.start + DateOffset(years=1)
+
+    @property
+    def is_month(self):
+        start = format_timestamp(self.start)
+        end = format_timestamp(self.end)
+
+        return len(start) <= 8 and self.end == self.start + DateOffset(months=1)
+
+    @property
+    def is_day(self):
+        start = format_timestamp(self.start)
+        end = format_timestamp(self.end)
+
+        return len(start) <= 11 and self.end == self.start + DateOffset(days=1)
 
     def __str__(self) -> str:
         return f"{format_timestamp(self.left)}/{format_timestamp(self.right)}"

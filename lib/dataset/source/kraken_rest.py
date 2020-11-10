@@ -79,16 +79,31 @@ class KrakenRESTSource:
     async def markets(self):
         return [Market(EXCHANGE_SYMBOL, symbol) for symbol in await self.instruments()]
 
-    async def trades(self, market: str, since: Optional[Timestamp] = None):
+    async def trades(
+        self,
+        market: str,
+        since: Optional[Timestamp] = None,
+        timeout: Optional[float] = None,
+        until_now: bool = True,
+    ):
+        # TODO: support more complete query API instead of just since
+
+        start_time = time.time()
+
         while True:
             series = await self.trades_series(market, since)
             if len(series) > 0:
                 since = series.partition.period.end
                 yield series
 
-    async def trades_series(self, market: str, since: Optional[Timestamp] = None):
-        # TODO: support more complete query API instead of just since
+            if until_now and len(series) == 0:
+                break
 
+            elapsed_time = time.time() - start_time
+            if timeout and elapsed_time > timeout - DEFAULT_WAIT_TIME:
+                break
+
+    async def trades_series(self, market: str, since: Optional[Timestamp] = None):
         exchange_symbol, instrument = market.split(":", 1)
         if exchange_symbol != EXCHANGE_SYMBOL:
             raise ValueError(f"{SOURCE_SYMBOL}: market not supported: {market}")
@@ -180,6 +195,12 @@ class KrakenRESTSource:
 
     # TODO: Refactor back-off algorithm to request module
     async def _request_backoff(self, method: str, data={}, tries=3, current_try=0):
+        if not self._client:
+            self._client = request_client(
+                throttle_wait=DEFAULT_WAIT_TIME,
+                timeout=DEFAULT_TIMEOUT,
+            )
+
         try:
             return await self._request_single(method, data)
         except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
@@ -200,12 +221,6 @@ class KrakenRESTSource:
             )
 
     async def _request_single(self, method: str, data={}):
-        if not self._client:
-            self._client = request_client(
-                throttle_wait=DEFAULT_WAIT_TIME,
-                timeout=DEFAULT_TIMEOUT,
-            )
-
         url = f"https://api.kraken.com/{API_VERSION}/public/{method}"
         response = await self._client.post(url, json=data)
 

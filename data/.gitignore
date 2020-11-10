@@ -1,0 +1,2 @@
+# Ignore write-ahead log (WAL) files in git repo
+trades/year=*/exchange=*/instrument=*/source=*/*Z.*Z.*.*.*.trades.parquet
