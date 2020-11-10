@@ -9,6 +9,22 @@ from ..period import parse_period
 from ..partition import Partition
 from ..types import TimeInterval
 
+PARQUET_WRITE_ARGS = {
+    "compression": "ZSTD",
+    "version": "2.0",
+    "data_page_version": "2.0",
+}
+
+
+def write_table(table: pa.Table, path: Path):
+    tmp_path = path.with_name(f"{path.name}.new_{token_hex(6)}")
+    try:
+        pq.write_table(table, tmp_path, **PARQUET_WRITE_ARGS)
+    except FileNotFoundError:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pq.write_table(table, tmp_path, **PARQUET_WRITE_ARGS)
+    tmp_path.rename(path)
+
 
 class DatasetWriter:
     def __init__(self, path: str):
@@ -27,13 +43,7 @@ class DatasetWriter:
                 partition = series.partition
             path = self._path / series.partition.path("trades")
             index_paths.add(path.parent)
-            pq.write_table(
-                series.table,
-                path,
-                compression="ZSTD",
-                version="2.0",
-                data_page_version="2.0",
-            )
+            write_table(series.table, path)
             print(series)
 
         for index_path in index_paths:
@@ -121,28 +131,23 @@ class DatasetWriter:
                 print(f"- REMOVED: {file.stem}")
 
         for index_period, files in files_to_index.items():
-            if len(files) == 1:
-                print(f"- ALREADY INDEXED: {files[0][1].stem}")
-                continue
-
-            file_period = TimeInterval(files[0][0].start, files[-1][0].end)
-            table = pa.concat_tables([pq.read_table(file) for period, file in files])
-            filename = partition.with_period(file_period).path(
+            file_period = TimeInterval(index_period, files[-1][0].end)
+            filename = self._path / partition.with_period(file_period).path(
                 subject,
                 period_short=True,
             )
-            tmp_filename = self._path / f"{filename}.new_{token_hex(6)}"
 
-            pq.write_table(
-                table,
-                tmp_filename,
-                compression="ZSTD",
-                version="2.0",
-                data_page_version="2.0",
-            )
-            tmp_filename.rename(self._path / filename)
-            print(f"- INDEXED: {(self._path / filename).stem}")
-        exit()
+            if len(files) == 1:
+                if files[0][1] == filename:
+                    print(f"- ALREADY INDEXED: {filename.stem}")
+                else:
+                    files[0][1].rename(filename)
+                    print(f"- INDEXED (RENAME): {filename.stem}")
+                continue
+
+            table = pa.concat_tables([pq.read_table(file) for period, file in files])
+            write_table(table, filename)
+            print(f"- INDEXED: {filename.stem}")
 
     def _get_since(self, subject: str, market: str) -> Optional[Timestamp]:
         exchange, instrument = market.split(":", 1)
@@ -166,12 +171,24 @@ class DatasetWriter:
 if __name__ == "__main__":
     from ...infrastructure.request import request_context
     from ...source import source_instance
+    from ..types import Market
     import asyncio
 
     async def test():
         async with request_context():
             kraken_rest = source_instance("kraken_rest")
             writer = DatasetWriter("./data")
-            await writer.write_trades("kraken:btc/eur", kraken_rest, timeout=300)
+            # await writer.index_path(
+            #     Path(
+            #         "./data/trades/year=2019/exchange=kraken/instrument=ada_btc/source=kraken_rest"
+            #     ).resolve(),
+            #     "trades",
+            #     Partition(
+            #         "kraken_rest",
+            #         Market("kraken", "ada/btc"),
+            #         parse_period("2019"),
+            #     ),
+            # )
+            # await writer.write_trades("kraken:ada/btc", kraken_rest, timeout=300)
 
     asyncio.run(test())

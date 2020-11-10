@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Immediately exit on failure; work in root directory
+set -e
+cd $(dirname "$0")/..
+
+# Get runtime config
+TAG=${DATASET_DOCKER_TAG:-walling/trading_dataset}
+DIR=${DATASET_DIR:-./data}
+
+# Get absolute path of data dir
+DIR=$(cd "$DIR" && pwd || false)
+
+# Build docker image
+cd lib/dataset
+docker build -t "$TAG" .
+
+# Invoke application
+docker run -it --mount type=bind,source="$DIR",target=/data "$TAG" "$@"

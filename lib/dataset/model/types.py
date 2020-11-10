@@ -152,10 +152,10 @@ class TimeInterval(Interval):
             if len(start) == 5 and self.end == self.start + DateOffset(years=1):
                 return start[0:4]
 
-            if len(start) == 8 and self.end == self.start + DateOffset(months=1):
+            if len(start) <= 8 and self.end == self.start + DateOffset(months=1):
                 return start[0:7]
 
-            if len(start) == 11 and self.end == self.start + DateOffset(days=1):
+            if len(start) <= 11 and self.end == self.start + DateOffset(days=1):
                 return start[0:10]
 
         start = format_timestamp_full(self.start)
