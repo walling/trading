@@ -146,17 +146,17 @@ class TimeInterval(Interval):
 
     def format(self, short=False) -> str:
         if short:
-            start = format_timestamp(self.start)
-            end = format_timestamp(self.end)
+            start = format_timestamp(self.start).replace("Z", "")
+            end = format_timestamp(self.end).replace("Z", "")
 
-            if len(start) == 5 and self.end == self.start + DateOffset(years=1):
+            if len(start) == 4 and self.end == self.start + DateOffset(years=1):
                 return start[0:4]
 
-            if len(start) <= 8 and self.end == self.start + DateOffset(months=1):
-                return start[0:7]
+            if len(start) <= 7 and self.end == self.start + DateOffset(months=1):
+                return f"{start}-01"[0:7]
 
-            if len(start) <= 11 and self.end == self.start + DateOffset(days=1):
-                return start[0:10]
+            if len(start) <= 10 and self.end == self.start + DateOffset(days=1):
+                return f"{start}-01-01"[0:10]
 
         start = format_timestamp_full(self.start)
         end = format_timestamp_full(self.end)

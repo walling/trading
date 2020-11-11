@@ -2,18 +2,23 @@ from typing import Optional
 from pathlib import Path
 from pandas import Timestamp, Timedelta
 from secrets import token_hex
+import re
 import pyarrow as pa
 import pyarrow.parquet as pq
 from ..source import Source, split_per_day
 from ..period import parse_period
 from ..partition import Partition
-from ..types import TimeInterval
+from ..types import Market, TimeInterval
 
 PARQUET_WRITE_ARGS = {
     "compression": "ZSTD",
     "version": "2.0",
     "data_page_version": "2.0",
 }
+
+HIVE_PARTITION_REGEX = re.compile(
+    r"/trades/year=(?P<year>\d{4})/exchange=(?P<exchange>[\w\-]+)/instrument=(?P<instrument>[\w\-]+)/source=(?P<source>[\w\-]+)\Z"
+)
 
 
 def write_table(table: pa.Table, path: Path):
@@ -47,11 +52,28 @@ class DatasetWriter:
             print(series)
 
         for index_path in index_paths:
-            print(f"INDEXING {index_path}:")
             await self.index_path(index_path, "trades", partition)
+
+    async def index(self):
+        hive_pattern = "trades/year=*/exchange=*/instrument=*/source=*/*.parquet"
+        index_paths = set()
+        for file in self._path.glob(hive_pattern):
+            index_paths.add(file.parent)
+
+        for index_path in index_paths:
+            match = HIVE_PARTITION_REGEX.search(str(index_path))
+            if not match:
+                continue
+
+            partition = Partition(
+                match["source"],
+                Market(match["exchange"], match["instrument"]),
+                parse_period(match["year"]),
+            )
             await self.index_path(index_path, "trades", partition)
 
     async def index_path(self, path: Path, subject: str, partition: Partition):
+        print(f"INDEXING {path}:")
         full_period = None
         files_to_index = {}
         files_to_remove = {}
@@ -71,7 +93,7 @@ class DatasetWriter:
                     return
                 index_period = "%04d-%02d" % (period.start.year, period.start.month)
             else:
-                if period.start < daily and period.is_day:
+                if period.start < daily and period.is_day and "Z" not in file.stem:
                     return
                 index_period = "%04d-%02d-%02d" % (
                     period.start.year,
@@ -171,7 +193,6 @@ class DatasetWriter:
 if __name__ == "__main__":
     from ...infrastructure.request import request_context
     from ...source import source_instance
-    from ..types import Market
     import asyncio
 
     async def test():
