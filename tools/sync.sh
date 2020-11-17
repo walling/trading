@@ -5,4 +5,4 @@ set -e
 cd $(dirname "$0")/..
 
 # Sync files using rsync
-rsync -chavzP --delete --stats trading-rsync@herkules:data/trades ./data/
+rsync -chavzP --delete --stats trading-rsync@herkules:data .
