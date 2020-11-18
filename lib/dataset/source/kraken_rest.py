@@ -243,9 +243,11 @@ if __name__ == "__main__":
     async def test():
         async with request_context():
             kraken = KrakenRESTSource()
-            since = Timestamp("2020-11-05 17:00", tz="UTC")
-            async for t in kraken.trades("kraken:btc/eur", since=since):
-                print(t)
+            # since = Timestamp("2020-11-05 17:00", tz="UTC")
+            # async for t in kraken.trades("kraken:btc/eur", since=since):
+            #     print(t)
+            print(await kraken.instruments())
+            print(kraken._instruments["ada/eth"])
             # print(await request("Time"))
             # print(await request("AssetPairs"))
             # print(await request("Trades", {"pair": "XXBTZEUR"}))

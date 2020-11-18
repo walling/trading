@@ -52,7 +52,7 @@ class DatasetWriter:
             print(series)
 
         for index_path in index_paths:
-            await self.index_path(index_path, "trades", partition)
+            await self.index_path(index_path, "trades", partition)  # type: ignore
 
     async def index(self):
         hive_pattern = "trades/year=*/exchange=*/instrument=*/source=*/*.parquet"
@@ -75,6 +75,7 @@ class DatasetWriter:
     async def index_path(self, path: Path, subject: str, partition: Partition):
         print(f"INDEXING {path}:")
         full_period = None
+        shadow_file = None
         files_to_index = {}
         files_to_remove = {}
 
@@ -181,7 +182,7 @@ class DatasetWriter:
 
         return self._get_filename_period(paths[-1].stem).end
 
-    def _get_filename_period(self, name: str) -> Timestamp:
+    def _get_filename_period(self, name: str) -> TimeInterval:
         parts = name.split(".")
         if len(parts[0]) > 10:
             period = f"{parts[0]}.{parts[1]}/{parts[2]}.{parts[3]}"
