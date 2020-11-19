@@ -13,6 +13,10 @@ SUBJECT_SYMBOLS = [
     "book:diff",
 ]
 
+YEAR_REGEX = re.compile(r"\A(\d{4})\Z")
+MONTH_REGEX = re.compile(r"\A(\d{4})-(\d{2})\Z")
+DAY_REGEX = re.compile(r"\A(\d{4})-(\d{2})-(\d{2})\Z")
+
 
 @dataclass(repr=False, order=True, frozen=True)
 class Symbol:
@@ -83,6 +87,13 @@ class Year:
     def from_timestamp(timestamp: IsYear) -> "Year":
         return Year(timestamp.year)
 
+    @staticmethod
+    def from_iso(iso: str) -> "Year":
+        match = YEAR_REGEX.match(iso)
+        if not match:
+            raise ValueError(f"invalid year format: {repr(iso)}")
+        return Year(int(match[1]))
+
     def as_timestamp(self) -> "Timestamp":
         return Timestamp.from_year(self)
 
@@ -109,6 +120,13 @@ class Month:
     @staticmethod
     def from_timestamp(timestamp: IsMonth) -> "Month":
         return Month(timestamp.year, timestamp.month)
+
+    @staticmethod
+    def from_iso(iso: str) -> "Month":
+        match = MONTH_REGEX.match(iso)
+        if not match:
+            raise ValueError(f"invalid month format: {repr(iso)}")
+        return Month(int(match[1]), int(match[2]))
 
     def as_timestamp(self) -> "Timestamp":
         return Timestamp.from_month(self)
@@ -138,6 +156,13 @@ class Day:
     def from_timestamp(timestamp: IsDay) -> "Day":
         return Day(timestamp.year, timestamp.month, timestamp.day)
 
+    @staticmethod
+    def from_iso(iso: str) -> "Day":
+        match = DAY_REGEX.match(iso)
+        if not match:
+            raise ValueError(f"invalid day format: {repr(iso)}")
+        return Day(int(match[1]), int(match[2]), int(match[3]))
+
     def as_timestamp(self) -> "Timestamp":
         return Timestamp.from_day(self)
 
@@ -163,6 +188,10 @@ class Timestamp:
     def __post_init__(self):
         if self.timestamp.tzname() != "UTC":
             raise ValueError(f"timestamp must be UTC: {repr(self.timestamp)}")
+
+    @staticmethod
+    def from_iso(iso: str) -> "Timestamp":
+        return Timestamp(pandas.Timestamp(iso, tz="UTC"))
 
     @staticmethod
     def from_year(timestamp: IsYear) -> "Timestamp":
@@ -284,9 +313,60 @@ class MarketSymbol:
         return self.symbol
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(repr=False, frozen=True)
 class FileId:
     subject: SubjectSymbol
     source: SourceSymbol
     market: MarketSymbol
     time: Union[Year, Month, Day, Timestamp]
+
+    @staticmethod
+    def from_str(s: str) -> "FileId":
+        parts = s.lower().split(":", 4)
+        if len(parts) != 5:
+            raise ValueError(f"invalid fileid string: {repr(s)}")
+
+        time_size = len(parts[4])
+        time = None
+        if time_size == 4:
+            time = Year.from_iso(parts[4])
+        elif time_size == 7:
+            time = Month.from_iso(parts[4])
+        elif time_size == 8:
+            time = Day.from_iso(parts[4])
+        else:
+            time = Timestamp.from_iso(parts[4])
+
+        return FileId(
+            SubjectSymbol(parts[0]),
+            SourceSymbol(parts[1]),
+            MarketSymbol.from_symbol(":".join(parts[2:4])),
+            time,
+        )
+
+    def as_str(self) -> str:
+        parts = [
+            self.subject.symbol,
+            self.source.symbol,
+            self.market.symbol,
+            self.time.isoformat(),
+        ]
+        return ":".join(parts)
+
+    def __gt__(self, other: "FileId") -> bool:
+        return self.as_str() > other.as_str()
+
+    def __lt__(self, other: "FileId") -> bool:
+        return self.as_str() < other.as_str()
+
+    def __ge__(self, other: "FileId") -> bool:
+        return self.as_str() >= other.as_str()
+
+    def __le__(self, other: "FileId") -> bool:
+        return self.as_str() <= other.as_str()
+
+    def __repr__(self) -> str:
+        return "%s.from_symbol(%r)" % (self.__class__.__name__, self.as_str())
+
+    def __str__(self) -> str:
+        return self.as_str()

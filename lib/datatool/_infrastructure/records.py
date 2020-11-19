@@ -25,6 +25,7 @@ class RecordsWriter:
 
     def write(self, records: pa.Table):
         if not self._writer:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
             self._splitter = DataSplitter(
                 batch_size=self._row_group_size,
                 concat_fn=pa.concat_tables,
@@ -58,12 +59,6 @@ class RecordsWriter:
 
         return self
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
-
     def __getstate__(self):
         if not (self._splitter is None and self._writer is None):
             raise RuntimeError("RecordsWriter: can not be pickled after writing")
@@ -88,12 +83,12 @@ class RecordsRepository:
 
     def find(self, subject: Optional[SubjectSymbol] = None) -> Iterator[FileId]:
         if subject:
-            glob_pattern = f"{subject}/*/*/*/*.{subject}.parquet"
+            glob_pattern = f"{subject}/*/*/*/*/*.{subject}.parquet"
         else:
-            glob_pattern = "*/*/*/*/*.parquet"
+            glob_pattern = "*/*/*/*/*/*.parquet"
 
         last_file = None
-        for path in self._path.glob(glob_pattern):
+        for path in sorted(self._path.glob(glob_pattern)):
             file = self._path_to_fileid(path)
             if file:
                 if last_file:
@@ -109,18 +104,45 @@ class RecordsRepository:
             str(file.subject),
             str(file.source),
             str(file.market.exchange),
-            str(file.market.instrument),
+            str(file.market.instrument).replace("/", "_"),
             str(file.time.year),
             "_".join(
                 [
-                    str(file.time),
+                    str(file.time).replace(":", "").replace(".", "_"),
                     str(file.source),
                     str(file.market.exchange),
-                    str(file.market.instrument),
+                    str(file.market.instrument).replace("/", "_"),
                 ],
             )
             + f".{file.subject}.parquet",
         )
 
     def _path_to_fileid(self, path: Path):
-        pass  # todo
+        name, subject, file_format = path.name.split(".")
+        if file_format != "parquet":
+            return
+
+        parts = name.split("_")
+        if len(parts) not in [5, 6, 7]:
+            return
+
+        time_str = parts[0]
+        if len(time_str) > 10:
+            time_str += "." + parts.pop(1)
+
+        source = parts[1]
+        exchange = parts[2]
+        instrument = "/".join(parts[3:])
+
+        if path.parent.name != time_str[0:4]:
+            return
+        if path.parent.parent.name != instrument.replace("/", "_"):
+            return
+        if path.parent.parent.parent.name != exchange:
+            return
+        if path.parent.parent.parent.parent.name != source:
+            return
+        if path.parent.parent.parent.parent.parent.name != subject:
+            return
+
+        return FileId.from_str(f"{subject}:{source}:{exchange}:{instrument}:{time_str}")
