@@ -11,6 +11,7 @@ import pyarrow as pa
 from pathlib import Path
 
 import datatool.write.schema as schema
+from datatool.model.types import Timestamp
 from datatool.write.writer import DatasetWriter
 from datatool._infrastructure.records import RecordsRepository
 
@@ -98,15 +99,17 @@ async def main():
             row["source"],
             row["exchange"],
             row["instrument"].replace("_", "/"),
-            row["time"].isoformat(),
+            Timestamp(row["time"]).isoformat(),
         ]
+        fileid = ":".join(fileid_parts)
+
         try:
             await writer.write_records(records)
-            print(f"{':'.join(fileid_parts)} ({len(records)})")
+            print(f"{fileid} ({len(records)})")
         except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
             raise
         except Exception as error:
-            print(f"error: {error}")
+            print(f"{fileid} ({len(records)}) - ERROR: {error}")
 
 
 if __name__ == "__main__":
