@@ -1,5 +1,5 @@
 import asyncio
-from typing import List
+from typing import List, AsyncIterable
 from concurrent.futures import ThreadPoolExecutor
 from pyarrow import Table
 from ..model.types import FileId
@@ -18,7 +18,12 @@ class DatasetWriter:
         self._write_ahead_log = write_ahead_log
         self._session = session
 
-    async def write(self, records: Table):
+    async def write(self, records_stream: AsyncIterable[Table]):
+        async with self._session.resource(WriteAsyncPool):
+            async for records in records_stream:
+                await self.write_records(records)
+
+    async def write_records(self, records: Table):
         async with self._session.resource(WriteAsyncPool) as pool:
             await pool.write_async(self._write_ahead_log, records)
 
