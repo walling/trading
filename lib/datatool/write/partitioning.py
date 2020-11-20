@@ -12,12 +12,15 @@ from ..model.types import (
     FileId,
 )
 
-DAY_NANOSECONDS = pa.scalar(24 * 60 * 60 * 10 ** 9, type=pa.uint64())
+DAY_NANOSECONDS = 24 * 60 * 60 * 10 ** 9
 PARTITION_COLUMNS = ["subject", "source", "exchange", "instrument"]
 
 
 def _hash_array(array: pa.ChunkedArray) -> Tuple[int, pa.ChunkedArray]:
-    encoded = array.dictionary_encode()
+    if isinstance(array.type, pa.DictionaryType):
+        encoded = array
+    else:
+        encoded = array.dictionary_encode()
     return (
         len(encoded.chunk(0).dictionary),
         pa.chunked_array(
@@ -64,7 +67,7 @@ def _fileid_from_chunk(chunk: pa.Table) -> FileId:
 
 
 def partition_records(records: pa.Table) -> Iterator[Tuple[FileId, pa.Table]]:
-    time = records["time"].cast(pa.uint64())
+    time = records["time"].cast(pa.int64())
     assert records["time"].type.tz == "UTC", "time column must be in UTC"
     assert np.all(np.diff(time.to_numpy()) >= 0), "time column must be monotonic"
 

@@ -1,9 +1,9 @@
 import pyarrow as pa
 
 # Modeling decimal values as integer representation and scale (number of fractal digits).
-decimal_representation = pa.field("representation", pa.uint64(), nullable=False)
+decimal_int = pa.field("int", pa.uint64(), nullable=False)
 decimal_scale = pa.field("scale", pa.int32(), nullable=False)
-decimal = pa.struct([decimal_representation, decimal_scale])
+decimal = pa.struct([decimal_int, decimal_scale])
 
 # Modeling external id as prefix plus either numeric or uuid part (any optional).
 external_id_prefix = pa.field("prefix", pa.string())
@@ -13,11 +13,10 @@ external_id = pa.struct([external_id_prefix, external_id_numeric, external_id_uu
 
 # Fields used to partition the dataset.
 partition_fields = [
-    pa.field("subject", pa.string(), nullable=False),
-    pa.field("source", pa.string(), nullable=False),
-    pa.field("exchange", pa.string(), nullable=False),
-    pa.field("instrument", pa.string(), nullable=False),
-    pa.field("year", pa.int32(), nullable=False),
+    pa.field("subject", pa.dictionary(pa.int32(), pa.string()), nullable=False),
+    pa.field("source", pa.dictionary(pa.int32(), pa.string()), nullable=False),
+    pa.field("exchange", pa.dictionary(pa.int32(), pa.string()), nullable=False),
+    pa.field("instrument", pa.dictionary(pa.int32(), pa.string()), nullable=False),
 ]
 
 # Fields used by trades records.
