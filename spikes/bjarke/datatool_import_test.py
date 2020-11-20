@@ -100,8 +100,13 @@ async def main():
             row["instrument"].replace("_", "/"),
             row["time"].isoformat(),
         ]
-        print(f"{':'.join(fileid_parts)} ({len(records)})")
-        await writer.write_records(records)
+        try:
+            await writer.write_records(records)
+            print(f"{':'.join(fileid_parts)} ({len(records)})")
+        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as error:
+            print(f"error: {error}")
 
 
 if __name__ == "__main__":
