@@ -6,7 +6,7 @@ all: test typecheck lint
 # todo: fix test errors
 test:
 	@echo "== python test =="
-	@pytest --quiet --doctest-modules lib/dataset/
+	@pytest --quiet --doctest-modules lib/dataset lib/datatool
 
 # todo: fix type check errors
 typecheck:

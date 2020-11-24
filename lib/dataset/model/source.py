@@ -1,4 +1,4 @@
-from typing import Protocol, Optional, Iterator, AsyncIterator
+from typing import Protocol, Optional, List, Iterator, AsyncIterator
 from abc import abstractmethod
 from pandas import Timestamp, Timedelta
 import pyarrow as pa
@@ -6,11 +6,10 @@ import pyarrow.compute as pc
 import asyncio, threading
 from queue import Queue
 from .series import TableSeries
-from .types import TimeInterval
+from .types import TimeInterval, Market
 
 
 class Source(Protocol):
-    @abstractmethod
     async def trades(
         self,
         market: str,
@@ -18,6 +17,9 @@ class Source(Protocol):
         timeout: Optional[float] = None,
         until_now: bool = True,
     ) -> AsyncIterator[TableSeries]:
+        ...
+
+    async def markets(self) -> List[Market]:
         ...
 
 
