@@ -12,6 +12,7 @@ const content = {
       "../documents/turbulence-and-trading.md",
       "utf8"
     ),
+    "exchange.md": readFileSync("../documents/exchange.md", "utf8"),
   },
   lib: {
     dataset: {
