@@ -12,15 +12,18 @@ The five selected exchanges were:
 |   4 | kraken   | 2011 | United States       |    4    | My most familiar exchange        |
 |  12 | okcoin   | 2013 | China               |   18    | Were better ranked on 2020-12-13 |
 
-\*) Rank by traded volume on Cryptowach on 2020-12-17. <https://cryptowat.ch/exchanges>
+\*) Rank by traded volume on Cryptowach on 2020-12-17. Ref: <https://cryptowat.ch/exchanges>
 
 ## Binary frames
 
 Through Cryptowatch you can fetch data using a HTTP REST API or almost realtime through their websocket API. The websocket packet format is based on either JSON or Protobuf, the last saving a lot of bandwidth. Since you pay a small fee per consumed byte, the lower bandwidth the better.
 
-I created a small script, which fetched the raw data in Protobuf format and saved it directly to a flat records file. Afterwards, the file was compressed using [zstd][] and shared in the data folder. Simply run `./tools/sync.sh` to get the file. The format of the decompressed file is a continous stream of records, each record having the following layout:
+I created a small script, which fetched the raw data in Protobuf format and saved it directly to a flat records file. Afterwards, the file was compressed using [zstd][] and shared in the data folder. To parse zstd files, you need to install the [zstandard][] package.
+
+Simply run `./tools/sync.sh` to get the file. The format of the decompressed file is a continous stream of records, each record having the following layout:
 
 [zstd]: http://www.zstd.net
+[zstandard]: https://pypi.org/project/zstandard/
 
 | Field  | Size           |
 | :----- | :------------- |
@@ -30,7 +33,7 @@ I created a small script, which fetched the raw data in Protobuf format and save
 
 The next frame is then appended on top of the previous, etc. Reading this format requires one to read the length (next 2 bytes), then read the frame (next _length_ bytes), and finally the crc code (next 4 bytes). The crc code is used to verify the correctness of the frame. It’s calculated as `CRC32(length_bytes + frame_bytes)`, this can be done using the `binascii.crc32` function in Python.
 
-> **Example:** `spikes/bjarke/order_book_data/frames.py`
+**Example script:** `spikes/bjarke/order_book_data/frames.py`
 
 ### Fast file parsing
 
@@ -50,7 +53,7 @@ message.ParseFromString(message_bytes)
 print(message)
 ```
 
-> **Example:** `spikes/bjarke/order_book_data/messages.py`
+**Example script:** `spikes/bjarke/order_book_data/messages.py`
 
 For it to work, you need to install the [cryptowatch-sdk][] package.
 
@@ -128,7 +131,7 @@ The gathered market update messages were from 5 exchanges, covered 1883 instrume
 | bitfinex |   1704825 |  14.8 % |       2        |
 | okcoin   |    151973 |  01.3 % |       18       |
 
-> **Example:** `spikes/bjarke/order_book_data/stats.py`
+**Example script:** `spikes/bjarke/order_book_data/stats.py`
 
 ### Messages to ignore
 
@@ -308,9 +311,10 @@ marketUpdate {
 
 ### Message schemas
 
-The [detailed message definitions][] can be found online in the Github repository (Proto3 format).
+The [detailed message definitions][] can be found online in the Github repository ([Proto3 format][]).
 
 [detailed message definitions]: https://github.com/cryptowatch/cw-sdk-python/blob/master/proto/public/markets/market.proto
+[proto3 format]: https://developers.google.com/protocol-buffers/docs/proto3
 
 ## Protobuf behaviour
 
