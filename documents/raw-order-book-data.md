@@ -14,30 +14,34 @@ The five selected exchanges were:
 
 \*) Rank by traded volume on Cryptowach on 2020-12-17. <https://cryptowat.ch/exchanges>
 
-## Binary Messages
+## Binary frames
 
 Through Cryptowatch you can fetch data using a HTTP REST API or almost realtime through their websocket API. The websocket packet format is based on either JSON or Protobuf, the last saving a lot of bandwidth. Since you pay a small fee per consumed byte, the lower bandwidth the better.
 
-I created a small script, which fetched the raw data in Protobuf format and saved it directly to a flat records file. The format of the file is a continous stream of records, each record having the following layout:
+I created a small script, which fetched the raw data in Protobuf format and saved it directly to a flat records file. Afterwards, the file was compressed using [zstd][] and shared in the data folder. Simply run `./tools/sync.sh` to get the file. The format of the decompressed file is a continous stream of records, each record having the following layout:
 
-| field   | size           |
-| :------ | :------------- |
-| length  | 2 bytes        |
-| message | _length_ bytes |
-| crc     | 4 bytes        |
+[zstd]: http://www.zstd.net
 
-The next message is then appended on top of the previous, etc. Reading this format requires one to read the length (next 2 bytes), then read the message (next _length_ bytes), and finally the crc code (next 4 bytes). The crc code is used to verify the correctness of the message. It’s calculated as `CRC32(length_bytes + message_bytes)`, this can be done using the `binascii.crc32` function in Python.
+| Field  | Size           |
+| :----- | :------------- |
+| length | 2 bytes        |
+| frame  | _length_ bytes |
+| crc    | 4 bytes        |
+
+The next frame is then appended on top of the previous, etc. Reading this format requires one to read the length (next 2 bytes), then read the frame (next _length_ bytes), and finally the crc code (next 4 bytes). The crc code is used to verify the correctness of the frame. It’s calculated as `CRC32(length_bytes + frame_bytes)`, this can be done using the `binascii.crc32` function in Python.
+
+> **Example:** `spikes/bjarke/order_book_data/frames.py`
 
 ### Fast file parsing
 
-In order to parse the file as fast as possible in Python, you need to do as few copies as possible. That means using the `memoryview` object and a preallocated `bytearray` as buffer. Still, most time is spent deserialized the message.
+In order to parse the file as fast as possible in Python, you need to do as few copies as possible. That means using the `memoryview` object and a preallocated `bytearray` as buffer. Still, most time is spent deserialized the frame.
 
 ### Parsing messages
 
-The _message_ is Protobuf encoded using a schema provided by Cryptowatch. After having read and verified the bytes of the message, it needs to be deserialized. This can be done as follows:
+Each message is Protobuf encoded using a schema provided by Cryptowatch. Each frame needs to be deserialized. This can be done as follows:
 
 ```python
-# pip install cryptowatch-sdk
+# pip3 install cryptowatch-sdk
 from cryptowatch.stream.proto.public.stream import stream_pb2
 
 message = stream_pb2.StreamMessage()
@@ -45,6 +49,8 @@ message.ParseFromString(message_bytes)
 
 print(message)
 ```
+
+> **Example:** `spikes/bjarke/order_book_data/messages.py`
 
 For it to work, you need to install the [cryptowatch-sdk][] package.
 
@@ -89,7 +95,7 @@ Cryptowatch use integer identifiers for various object types. For human readable
 
 Only four types of market update messages were collected. In total 11480532 market updates were collected. Every message only relates to a single market. This is represented through the `marketUpdate.market` property, which contains three sub-properties:
 
-| market property  | description                                                   |
+| Market property  | Description                                                   |
 | :--------------- | :------------------------------------------------------------ |
 | `exchangeId`     | exchange id                                                   |
 | `currencyPairId` | instrument id (_pair_ is an [obsolete name for instrument][]) |
@@ -101,7 +107,7 @@ The ids can be looked up in the market metadata JSON, read the above section.
 
 The 4 market update message types are:
 
-| type          | #messages | percent | description                              |
+| Type          | #Messages | Percent | Description                              |
 | :------------ | --------: | ------: | :--------------------------------------- |
 | trade         |    439059 |   3.8 % | One or more trades in a given market     |
 | book snapshot |    129026 |   1.1 % | Full order book, only sent once a minute |
@@ -109,6 +115,20 @@ The 4 market update message types are:
 | spread        |   3021382 |  26.3 % | The best bid/ask prices and amounts      |
 
 In order to get the complete order book in realtime, an order book object needs to be maintained over time for every market. Every time a order book snapshot message is sent, it can be fully replaced. Whenever a delta message is sent, the delta is then applied to the most recent order book object for the given market.
+
+### Stats
+
+The gathered market update messages were from 5 exchanges, covered 1883 instruments, and 2172 markets in total. Number of messages per exchange:
+
+| Exchange | #Messages | Percent | Volume rank \* |
+| :------- | --------: | ------: | :------------: |
+| binance  |   4942003 |  43.0 % |       1        |
+| ftx      |   2610729 |  22.7 % |       3        |
+| kraken   |   2071002 |  18.0 % |       4        |
+| bitfinex |   1704825 |  14.8 % |       2        |
+| okcoin   |    151973 |  01.3 % |       18       |
+
+> **Example:** `spikes/bjarke/order_book_data/stats.py`
 
 ### Messages to ignore
 
@@ -143,19 +163,148 @@ subscriptionResult {
 
 ### Trade message
 
-_TODO_
+Example trade message:
+
+```
+marketUpdate {
+  tradesUpdate {
+    trades {
+      timestamp: 1607848390
+      priceStr: "3.2582"
+      amountStr: "35"
+      timestampNano: 1607848390407000000
+      externalId: "OMGUSDT:7704720"
+      orderSide: BUYSIDE
+    }
+    trades {
+      timestamp: 1607848390
+      priceStr: "3.255"
+      amountStr: "252.37"
+      timestampNano: 1607848390417000000
+      externalId: "OMGUSDT:7704724"
+      orderSide: SELLSIDE
+    }
+  }
+  market {
+    exchangeId: 27
+    currencyPairId: 551
+    marketId: 59573
+  }
+}
+```
 
 ### Book snapshot message
 
-_TODO_
+Example order book snapshot message:
+
+```
+marketUpdate {
+  orderBookUpdate {
+    bids {
+      priceStr: "28.718"
+      amountStr: "6.968"
+    }
+    bids {
+      priceStr: "28.701"
+      amountStr: "13"
+    }
+    bids {
+      priceStr: "28.7"
+      amountStr: "8.251"
+    }
+    // ...
+    asks {
+      priceStr: "28.761"
+      amountStr: "10"
+    }
+    asks {
+      priceStr: "28.762"
+      amountStr: "7.759"
+    }
+    asks {
+      priceStr: "28.77"
+      amountStr: "1.439"
+    }
+    // ...
+    seqNum: 82312
+  }
+  market {
+    exchangeId: 27
+    currencyPairId: 176598
+    marketId: 63534
+  }
+}
+```
 
 ### Book delta message
 
-_TODO_
+Example order book delta message:
+
+```
+marketUpdate {
+  orderBookDeltaUpdate {
+    bids {
+      set {
+        priceStr: "2.1689"
+        amountStr: "2143.8907"
+      }
+      set {
+        priceStr: "2.1678"
+        amountStr: "61.80452572"
+      }
+      // ...
+      removeStr: "2.1686"
+      removeStr: "2.1617"
+      // ...
+    }
+    asks {
+      set {
+        priceStr: "2.1731"
+        amountStr: "55.53662225"
+      }
+      set {
+        priceStr: "2.1734"
+        amountStr: "19.24339092"
+      }
+      // ...
+      removeStr: "2.173"
+      removeStr: "2.1739"
+      // ...
+    }
+    seqNum: 1224028
+  }
+  market {
+    exchangeId: 1
+    currencyPairId: 1519
+    marketId: 5165
+  }
+}
+```
 
 ### Spread message
 
-_TODO_
+Example spread message:
+
+```
+marketUpdate {
+  orderBookSpreadUpdate {
+    timestamp: 1607848390558
+    bid {
+      priceStr: "78.63"
+      amountStr: "20"
+    }
+    ask {
+      priceStr: "78.65"
+      amountStr: "1240"
+    }
+  }
+  market {
+    exchangeId: 27
+    currencyPairId: 176615
+    marketId: 136148
+  }
+}
+```
 
 ### Message schemas
 
@@ -192,7 +341,7 @@ print(type(message.marketUpdate.market.marketId))  # => int
 
 ## Order book aggregation
 
-Looking through the data, I observe that the order book deltas are heavily aggregated. This is unfortunate, because it makes it tricky or maybe even impossible to reverse-engineer the origin orders. Maybe it’s possible, if the time resolution on the delta messages is high enough. One problem is: If two trades executed at the same price, their cumultative volume is most probably aggregated into a single price bin in the order book delta message. By watching the changes in the order book and the stream of trade message, one might be able to infer some information. I’m not sure if it’s possible and how much information can be inferred.
+Looking through the data, I observe that the order book deltas are heavily aggregated. This is unfortunate, because it makes it tricky or maybe even impossible to reverse-engineer the origin orders. Maybe it’s possible, if the time resolution on the delta messages is high enough. One problem is: If two trades executed at the same price, their cumulative volume is most probably aggregated into a single price bin in the order book delta message. By watching the changes in the order book and the stream of trade message, one might be able to infer some information. I’m not sure if it’s possible and how much information can be inferred.
 
 A question also arrives, whether Cryptowatch deliberatly aggregates the order book deltas (one potential reason being performance). If this is the case, it might be possible to get better data directly from the exchange websocket APIs. However, accessing the data directly adds to the complexity of data cleaning and normalization. This is what Cryptowatch tries to solve in the first place, a single unified stream of market data with the same conventions applied everywhere.
 
@@ -200,7 +349,7 @@ A question also arrives, whether Cryptowatch deliberatly aggregates the order bo
 
 Only the trade and spread messages contain timestamps. The order book messages (both snapshot and delta) contain a sequence number `seqNum`, which is increased by 1 for every message in a given market. This is used to synchronize the deltas with the order book snapshot messages. However, no timestamp is given. I speculate, that it would be possible to estimate the time, using the trade and spread messages in a given market. Let’s say five messages are sent:
 
-|   # | message       |  timestamp   |
+|   # | Message       |  Timestamp   |
 | --: | :------------ | :----------: |
 |   1 | spread        | 10:47:12.000 |
 |   2 | book snapshot |     n/a      |
